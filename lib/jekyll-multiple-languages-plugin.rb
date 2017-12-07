@@ -29,7 +29,12 @@ module Jekyll
     static_files  = payload["site"]["static_files"]
     exclude_paths = payload["site"]["exclude_from_localizations"]
 
-    if default_lang != current_lang
+    # This will be called for each site.
+    is_language_subdirectory = payload["site"]["languages"].any? do |language|
+      site.dest.end_with? language
+    end
+
+    if is_language_subdirectory
       static_files.delete_if do |static_file|
         # Remove "/" from beginning of static file relative path
         static_file_r_path    = static_file.instance_variable_get(:@relative_path).dup
@@ -92,10 +97,11 @@ module Jekyll
       languages                   = self.config['languages'] # List of languages set on _config.yml
 
       # Site wide plugin configurations
-      self.config['default_lang'] = languages.first          # Default language (first language of array set on _config.yml)
-      self.config[        'lang'] = languages.first          # Current language being processed
-      self.config['baseurl_root'] = baseurl_org              # Baseurl of website root (without the appended language code)
-      self.config['translations'] = self.parsed_translations # Hash that stores parsed translations read from YAML files. Exposes this hash to Liquid.
+      default_language            = self.config['default_language']
+      self.config['default_lang'] = default_language                # Default language (first language of array set on _config.yml)
+      self.config[        'lang'] = default_language                # Current language being processed
+      self.config['baseurl_root'] = baseurl_org                     # Baseurl of website root (without the appended language code)
+      self.config['translations'] = self.parsed_translations        # Hash that stores parsed translations read from YAML files. Exposes this hash to Liquid.
 
 
       # Build the website for default language
@@ -111,7 +117,7 @@ module Jekyll
       # Remove .htaccess file from included files, so it wont show up on translations folders.
       self.include -= [".htaccess"]
 
-      languages.drop(1).each do |lang|
+      languages.each do |lang|
 
         # Language specific config/variables
         @dest                  = dest_org    + "/" + lang
